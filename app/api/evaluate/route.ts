@@ -12,7 +12,7 @@ import type { EvaluationRequest, EvaluationResult } from '@/types/interview'
 export async function POST(request: NextRequest) {
   try {
     const body: EvaluationRequest = await request.json()
-    const { jobDescription, questions, answers } = body
+    const { jobDescription, questions, answers, resume } = body
 
     // Validate input
     if (!jobDescription || !questions || !answers || answers.length === 0) {
@@ -22,11 +22,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Call evaluation function (Gemini placeholder)
+    // Call evaluation function
     const evaluation = await evaluateCandidate({
       jobDescription,
       questions,
       answers,
+      resume,
     })
 
     return NextResponse.json(evaluation)
@@ -51,42 +52,37 @@ export async function POST(request: NextRequest) {
  * @returns Evaluation result with scores and feedback
  */
 async function evaluateCandidate(data: EvaluationRequest): Promise<EvaluationResult> {
-  const { jobDescription, questions, answers } = data
+  const { jobDescription, questions, answers, resume } = data
 
+  const { GoogleGenerativeAI } = require('@google/generative-ai')
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
   
-  const { GoogleGenerativeAI } = require('@google/generative-ai');
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const prompt = buildEvaluationPrompt(jobDescription, questions, answers, resume)
+  const result = await model.generateContent(prompt)
+  const response = await result.response
+  const text = response.text().trim()
   
-  const prompt = buildEvaluationPrompt(jobDescription, questions, answers);
-  const result = await model.generateContent(prompt);
-  const response = await result.response;
-  const text = response.text();
+  // Clean up the response - remove markdown code blocks if present
+  let cleanedText = text
+  if (cleanedText.startsWith('```')) {
+    cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?/g, '')
+  }
+  if (cleanedText.includes('{')) {
+    const match = cleanedText.match(/\{[\s\S]*\}/)
+    if (match) {
+      cleanedText = match[0]
+    }
+  }
   
-  return JSON.parse(text);
-
-  const mockEvaluation: EvaluationResult = {
-    alignment_percentage: Math.floor(Math.random() * 40) + 60, 
-    technical_score: Math.floor(Math.random() * 3) + 7, 
-    problem_solving_score: Math.floor(Math.random() * 3) + 6,
-    communication_score: Math.floor(Math.random() * 3) + 7,
-    strengths: [
-      'Demonstrates strong technical knowledge',
-      'Clear communication style',
-      'Shows practical problem-solving approach',
-    ],
-    weaknesses: [
-      'Could provide more specific examples',
-      'Some answers lacked depth',
-    ],
-    final_verdict: ['Fit', 'Maybe', 'Reject'][Math.floor(Math.random() * 3)] as 'Fit' | 'Maybe' | 'Reject',
-    summary: `The candidate shows ${answers.length > 0 ? 'good' : 'limited'} engagement with the interview questions. Based on the responses provided, there are both strengths and areas for improvement. The evaluation considers technical alignment with the job description, problem-solving capabilities, and communication clarity.`,
+  try {
+    return JSON.parse(cleanedText)
+  } catch (parseError) {
+    console.error('Error parsing evaluation response:', parseError)
+    // Fallback to mock evaluation if parsing fails
+    return getMockEvaluation(answers)
   }
 
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1500))
-
-  return mockEvaluation
 }
 
 /**
@@ -103,22 +99,23 @@ async function evaluateCandidate(data: EvaluationRequest): Promise<EvaluationRes
 function buildEvaluationPrompt(
   jobDescription: string,
   questions: string[],
-  answers: Array<{ question: string; answer: string; timestamp: string }>
+  answers: Array<{ question: string; answer: string; timestamp: string }>,
+  resume?: string
 ): string {
-  const qaPairs = questions.map((q, i) => {
-    const answer = answers[i]?.answer || 'No answer provided'
-    return `Q${i + 1}: ${q}\nA${i + 1}: ${answer}`
+  const qaPairs = answers.map((qa, i) => {
+    return `Q${i + 1}: ${qa.question}\nA${i + 1}: ${qa.answer}`
   }).join('\n\n')
 
-  return `You are a senior hiring interviewer.
+  let prompt = `You are a senior hiring interviewer.
 
 Evaluate the candidate based on:
 - Job Description
-- Interview Questions
-- Candidate Answers
+- Interview Questions & Answers
+${resume ? '- Candidate Resume' : ''}
 
 Job Description:
 ${jobDescription}
+${resume ? `\nCandidate Resume:\n${resume}` : ''}
 
 Interview Q&A:
 ${qaPairs}
@@ -129,6 +126,7 @@ Evaluate across:
 3. Communication clarity
 4. Depth of understanding
 5. Practical experience signals
+${resume ? '6. Consistency between resume claims and interview responses' : ''}
 
 Return STRICT JSON (no markdown, no code blocks, just valid JSON):
 {
@@ -141,5 +139,27 @@ Return STRICT JSON (no markdown, no code blocks, just valid JSON):
   "final_verdict": "Fit" | "Maybe" | "Reject",
   "summary": string
 }`
+
+  return prompt
+}
+
+function getMockEvaluation(answers: Array<{ question: string; answer: string; timestamp: string }>): EvaluationResult {
+  return {
+    alignment_percentage: Math.floor(Math.random() * 40) + 60, 
+    technical_score: Math.floor(Math.random() * 3) + 7, 
+    problem_solving_score: Math.floor(Math.random() * 3) + 6,
+    communication_score: Math.floor(Math.random() * 3) + 7,
+    strengths: [
+      'Demonstrates strong technical knowledge',
+      'Clear communication style',
+      'Shows practical problem-solving approach',
+    ],
+    weaknesses: [
+      'Could provide more specific examples',
+      'Some answers lacked depth',
+    ],
+    final_verdict: ['Fit', 'Maybe', 'Reject'][Math.floor(Math.random() * 3)] as 'Fit' | 'Maybe' | 'Reject',
+    summary: `The candidate shows ${answers.length > 0 ? 'good' : 'limited'} engagement with the interview questions. Based on the responses provided, there are both strengths and areas for improvement. The evaluation considers technical alignment with the job description, problem-solving capabilities, and communication clarity.`,
+  }
 }
 

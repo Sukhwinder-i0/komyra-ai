@@ -22,6 +22,7 @@ export default function ResultPage() {
     // Load setup and answers from sessionStorage
     const savedSetup = sessionStorage.getItem('interviewSetup') || localStorage.getItem('interviewSetup')
     const savedAnswers = sessionStorage.getItem('interviewAnswers')
+    const savedState = sessionStorage.getItem('interviewState')
 
     if (!savedSetup) {
       alert('No interview setup found')
@@ -39,6 +40,20 @@ export default function ResultPage() {
       const parsedSetup = JSON.parse(savedSetup)
       const parsedAnswers = JSON.parse(savedAnswers)
       
+      // If interview state exists, use conversation_history from it (more complete)
+      if (savedState) {
+        try {
+          const parsedState = JSON.parse(savedState)
+          if (parsedState.conversation_history && parsedState.conversation_history.length > 0) {
+            setAnswers(parsedState.conversation_history)
+            evaluateInterview(parsedSetup, parsedState.conversation_history)
+            return
+          }
+        } catch (e) {
+          console.warn('Failed to parse interview state, using answers directly:', e)
+        }
+      }
+      
       setSetup(parsedSetup)
       setAnswers(parsedAnswers)
 
@@ -55,15 +70,18 @@ export default function ResultPage() {
     try {
       setIsLoading(true)
       
-      const response = await fetch('/api/evaluate', {
+      // Use new final-evaluation API
+      const response = await fetch('/api/final-evaluation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           jobDescription: setupData.jobDescription,
-          questions: setupData.questions,
-          answers: answersData,
+          resume: setupData.resume || '',
+          roleTitle: setupData.roleTitle,
+          conversation_history: answersData,
+          blueprint: setupData.interviewBlueprint,
         }),
       })
 

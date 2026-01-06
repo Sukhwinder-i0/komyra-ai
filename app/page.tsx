@@ -8,12 +8,12 @@ import Link from 'next/link'
  */
 export default function Home() {
   return (
-    <main className="min-h-screen flex items-center justify-center px-4">
+    <main className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="max-w-2xl w-full text-center">
-        <h1 className="text-5xl font-bold text-gray-900 mb-6">
+        <h1 className="text-4xl font-bold text-gray-200 mb-6">
           Komyra AI Interview Platform
         </h1>
-        <p className="text-xl text-gray-600 mb-8">
+        <p className="text-md text-gray-400 mb-8">
           An AI-powered interview platform that evaluates candidates through
           speech-based interviews. Get instant feedback on technical alignment,
           problem-solving skills, and communication clarity.
@@ -21,13 +21,13 @@ export default function Home() {
         <div className="flex gap-4 justify-center">
           <Link
             href="/setup"
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="px-3 py-2 bg-gray-400/50 text-white text-xs rounded-sm hover:bg-gray-500/40 transition-colors font-medium"
           >
             Admin Setup
           </Link>
           <Link
             href="/interview"
-            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+            className="px-3 py-2 bg-gray-100 rounded-sm text-xs hover:bg-gray-200/90 transition-colors font-medium"
           >
             Start Interview
           </Link>
