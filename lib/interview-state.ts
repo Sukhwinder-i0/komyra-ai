@@ -57,7 +57,7 @@ export function canContinueInterview(state: InterviewState): boolean {
 
 export function getInterviewProgress(state: InterviewState): number {
   if (!state.max_questions) return 0
-  const progress = (state.current_question_index / state.max_questions) * 100
+  const progress = ((state.current_question_index + 1) / state.max_questions) * 100
   return Math.min(100, Math.round(progress))
 }
 

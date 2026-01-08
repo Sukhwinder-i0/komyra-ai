@@ -37,13 +37,14 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { InterviewSetup, InterviewAnswer, InterviewState, InterviewBlueprint, NextQuestionResponse } from '@/types/interview'
 import { 
-  createInitialInterviewState, 
-  addAnswerToState, 
-  updateStateFromResponse,
+  createInitialInterviewState,
+  recordAnswer,
+  syncStateFromServer,
   canContinueInterview,
   getInterviewProgress,
   getQuestionContext,
 } from '@/lib/interview-state'
+
 
 export default function InterviewPage() {
   const router = useRouter()
@@ -216,7 +217,11 @@ export default function InterviewPage() {
       const data: NextQuestionResponse = await response.json()
 
       // Update state from server
-      const updatedState = updateStateFromResponse(state, data.updated_state)
+      const updatedState = syncStateFromServer(
+        state,
+        data.updated_state
+      )
+      
       setInterviewState(updatedState)
 
       if (data.question) {
@@ -236,16 +241,8 @@ export default function InterviewPage() {
     }
   }
 
-  // ============================================
   // SPEECH SYNTHESIS (TTS)
-  // ============================================
-
-  /**
-   * Speak Question
-   * ARCHITECTURE NOTE: Browser TTS speaks AI-generated text
-   * AI never speaks directly - browser reads the text we provide
-   * This ensures compatibility and accessibility
-   */
+  
   const speakQuestion = (question: string) => {
     if (!synthRef.current) return
 
@@ -397,12 +394,13 @@ export default function InterviewPage() {
     }
 
     // Add answer to state
-    const updatedState = addAnswerToState(
+    const updatedState = recordAnswer(
       interviewState,
       currentQuestion,
       currentAnswer.trim(),
       interviewState.current_question_id
     )
+    
     setInterviewState(updatedState)
     setCurrentAnswer('')
 

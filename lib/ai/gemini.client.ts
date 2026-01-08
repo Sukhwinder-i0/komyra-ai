@@ -1,13 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai"
+import { GoogleGenAI } from "@google/genai"
 
-const apiKey = process.env.GEMINI_API_KEY
-
-if (!apiKey) {
-  throw new Error("GEMINI_API_KEY is missing")
-}
-
-const client = new GoogleGenerativeAI(apiKey)
-
-export const geminiModel = client.getGenerativeModel({
-  model: "models/gemini-3.0-pro",
+export const genAI = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY!,
 })

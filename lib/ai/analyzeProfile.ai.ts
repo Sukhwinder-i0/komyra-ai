@@ -2,7 +2,7 @@ import type {
     AnalyzeProfileRequest,
     InterviewBlueprint,
   } from "@/types/interview"
-  import { geminiModel } from "./gemini.client"
+  import { genAI } from "./gemini.client"
   
   export async function analyzeProfileAI(
     data: AnalyzeProfileRequest
@@ -27,8 +27,18 @@ import type {
   }`
   
     try {
-      const result = await geminiModel.generateContent(prompt)
-      const text = result.response.text()
+      const result = await genAI.models.generateContent({
+        model: "gemini-1.5-pro",
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }],
+          },
+        ],
+      })
+      
+      const text = result.text
+      
   
       const json = extractJson(text)
       const parsed = JSON.parse(json)
