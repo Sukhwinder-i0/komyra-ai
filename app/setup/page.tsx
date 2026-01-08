@@ -30,71 +30,41 @@ export default function SetupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+  
     if (!roleTitle.trim() || !jobDescription.trim()) {
       alert('Please fill in role title and job description')
       return
     }
-
+  
     if (useDynamicQuestions && !resume.trim()) {
       alert('Resume is required for AI-generated questions')
       return
     }
-
+  
     if (!useDynamicQuestions && !questions.trim()) {
       alert('Please provide interview questions or enable AI-generated questions')
       return
     }
-
+  
     setIsLoading(true)
-
+  
     try {
       let questionsList: string[] = []
-      
-      if (useDynamicQuestions) {
-        // Generate questions from JD + resume using AI
-        try {
-          const response = await fetch('/api/generate-questions', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              jobDescription: jobDescription.trim(),
-              resume: resume.trim(),
-              roleTitle: roleTitle.trim(),
-            }),
-          })
-
-          if (!response.ok) {
-            throw new Error('Failed to generate questions')
-          }
-
-          const data = await response.json()
-          questionsList = data.questions || []
-          
-          if (questionsList.length === 0) {
-            throw new Error('No questions generated')
-          }
-        } catch (error) {
-          console.error('Error generating questions:', error)
-          alert('Failed to generate questions. Please try again or use manual questions.')
-          setIsLoading(false)
-          return
-        }
-      } else {
-        // Parse questions (one per line)
+  
+      if (!useDynamicQuestions) {
+        // Manual questions ONLY parsed here
         questionsList = questions
           .split('\n')
           .map(q => q.trim())
-          .filter(q => q.length > 0)
-
+          .filter(Boolean)
+  
         if (questionsList.length === 0) {
           alert('Please provide at least one interview question')
           setIsLoading(false)
           return
         }
       }
-
-      // Store in localStorage
+  
       const setupData = {
         roleTitle: roleTitle.trim(),
         jobDescription: jobDescription.trim(),
@@ -103,14 +73,11 @@ export default function SetupPage() {
         useDynamicQuestions,
         createdAt: new Date().toISOString(),
       }
-
+  
       localStorage.setItem('interviewSetup', JSON.stringify(setupData))
-      
-      // Also store in sessionStorage for easy access during interview
       sessionStorage.setItem('interviewSetup', JSON.stringify(setupData))
-
+  
       setIsLoading(false)
-      alert('Setup saved successfully! You can now start the interview.')
       router.push('/interview')
     } catch (error) {
       console.error('Setup error:', error)
@@ -118,6 +85,7 @@ export default function SetupPage() {
       alert('An error occurred. Please try again.')
     }
   }
+  
 
   return (
     <main className="min-h-screen bg-black py-12 px-4">

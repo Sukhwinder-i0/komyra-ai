@@ -1,9 +1,4 @@
-/**
- * TypeScript definitions for Web Speech API
- * Browser Speech Recognition API types
- */
-
-interface SpeechRecognition extends EventTarget {
+export interface SpeechRecognition extends EventTarget {
   continuous: boolean
   interimResults: boolean
   lang: string
@@ -15,41 +10,24 @@ interface SpeechRecognition extends EventTarget {
   onend: (() => void) | null
 }
 
-interface SpeechRecognitionEvent extends Event {
+export interface SpeechRecognitionEvent extends Event {
   resultIndex: number
   results: SpeechRecognitionResultList
 }
 
-interface SpeechRecognitionResultList {
-  readonly length: number
-  item(index: number): SpeechRecognitionResult
-  [index: number]: SpeechRecognitionResult
+export interface SpeechRecognitionErrorEvent extends Event {
+  error: string
+  message: string
 }
 
-interface SpeechRecognitionResult {
-  readonly length: number
-  readonly isFinal: boolean
-  item(index: number): SpeechRecognitionAlternative
-  [index: number]: SpeechRecognitionAlternative
-}
+declare global {
+  var SpeechRecognition: {
+    prototype: SpeechRecognition
+    new (): SpeechRecognition
+  }
 
-interface SpeechRecognitionAlternative {
-  readonly transcript: string
-  readonly confidence: number
+  var webkitSpeechRecognition: {
+    prototype: SpeechRecognition
+    new (): SpeechRecognition
+  }
 }
-
-interface SpeechRecognitionErrorEvent extends Event {
-  readonly error: string
-  readonly message: string
-}
-
-declare var SpeechRecognition: {
-  prototype: SpeechRecognition
-  new (): SpeechRecognition
-}
-
-declare var webkitSpeechRecognition: {
-  prototype: SpeechRecognition
-  new (): SpeechRecognition
-}
-

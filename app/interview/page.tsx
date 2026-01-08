@@ -274,78 +274,52 @@ export default function InterviewPage() {
     synthRef.current.speak(utterance)
   }
 
-  // ============================================
   // SPEECH RECOGNITION
-  // ============================================
-
-  /**
-   * Initialize Speech Recognition
-   * ARCHITECTURE NOTE: Browser Speech Recognition API stays client-side
-   * No audio data is sent to server - only final transcript
-   */
+  
   useEffect(() => {
-    if (typeof window === 'undefined' || !setup) return
+  if (!setup) return
 
-    const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition
-    
-    if (!SpeechRecognition) {
-      setError('Speech recognition is not supported in this browser. Please use Chrome or Edge.')
-      return
-    }
+  const SR =
+    window.SpeechRecognition || (window as any).webkitSpeechRecognition
+  if (!SR) {
+    setError('Speech recognition not supported')
+    return
+  }
 
-    const recognition = new SpeechRecognition()
-    recognition.continuous = true
-    recognition.interimResults = true
-    recognition.lang = 'en-US'
+  const recognition = new SR()
+  recognition.continuous = false   // ✅ IMPORTANT
+  recognition.interimResults = false
+  recognition.lang = 'en-US'
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interimTranscript = ''
-      let finalTranscript = ''
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript + ' '
-        } else {
-          interimTranscript += transcript
-        }
-      }
-
-      // Update current answer with final transcript
-      setCurrentAnswer(prev => prev + finalTranscript)
-    }
-
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      console.error('Speech recognition error:', event.error)
-      if (event.error === 'no-speech') {
-        return // Normal - no speech detected yet
-      }
-      setError(`Speech recognition error: ${event.error}`)
-      setIsRecording(false)
-      setIsListening(false)
-    }
-
-    recognition.onend = () => {
-      setIsListening(false)
-      // Auto-restart if still in recording mode
-      if (isRecording) {
-        try {
-          recognition.start()
-          setIsListening(true)
-        } catch (e) {
-          // Already started or error
-        }
+  recognition.onresult = (event: SpeechRecognitionEvent) => {
+    let text = ''
+    for (let i = 0; i < event.results.length; i++) {
+      if (event.results[i].isFinal) {
+        text += event.results[i][0].transcript + ' '
       }
     }
-
-    recognitionRef.current = recognition
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop()
-      }
+    if (text.trim()) {
+      setCurrentAnswer(text.trim())
     }
-  }, [setup, isRecording])
+  }
+
+  recognition.onerror = () => {
+    setIsRecording(false)
+    setIsListening(false)
+  }
+
+  recognition.onend = () => {
+    setIsRecording(false)
+    setIsListening(false)
+  }
+
+  recognitionRef.current = recognition
+
+  return () => {
+    recognition.abort()
+  }
+}, [setup])
+
 
   // cam init 
 
@@ -571,7 +545,6 @@ export default function InterviewPage() {
         )}
 
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Left Column: Camera Preview */}
           <div>
             <h2 className="text-lg font-semibold mb-2">Camera Preview</h2>
             <div className="bg-gray-800 rounded-md overflow-hidden aspect-video">
@@ -591,7 +564,6 @@ export default function InterviewPage() {
             </div>
           </div>
 
-          {/* Right Column: Question & Answer */}
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -636,7 +608,6 @@ export default function InterviewPage() {
               )}
             </div>
 
-            {/* Controls */}
             <div className="flex gap-2 flex-wrap">
               {!isRecording ? (
                 <button
@@ -678,7 +649,6 @@ export default function InterviewPage() {
   )
 }
 
-// Extend Window interface for TypeScript
 declare global {
   interface Window {
     SpeechRecognition: typeof SpeechRecognition

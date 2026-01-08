@@ -1,11 +1,5 @@
 import Link from 'next/link'
 
-/**
- * Landing Page
- * 
- * Brief explanation of the platform and entry point for both
- * admin setup and candidate interview flows.
- */
 export default function Home() {
   return (
     <main className="min-h-screen bg-black flex items-center justify-center px-4">
